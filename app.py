@@ -243,12 +243,28 @@ if "results" in st.session_state:
 
             if r["validation_questions"]:
                 st.markdown("**Recruiter Validation Questions**")
-                for i, q in enumerate(r["validation_questions"], 1):
-                    st.markdown(f"{i}. {q}")
+                questions_text = "\n".join([f"{i}. {q}" for i, q in enumerate(r["validation_questions"], 1)])
+                edited_questions = st.text_area(
+                    "Edit validation questions",
+                    value=questions_text,
+                    key=f"vq_{idx}",
+                    label_visibility="collapsed"
+                )
+                if edited_questions != questions_text:
+                    st.session_state["results"][idx]["validation_questions"] = [
+                        q.split(". ", 1)[-1] for q in edited_questions.strip().split("\n") if q.strip()
+                    ]
 
             if r["client_summary"]:
                 st.markdown("**Client-Ready Summary**")
-                st.info(r["client_summary"])
+                edited_summary = st.text_area(
+                    "Edit client summary",
+                    value=r["client_summary"],
+                    key=f"cs_{idx}",
+                    label_visibility="collapsed"
+                )
+                if edited_summary != r["client_summary"]:
+                    st.session_state["results"][idx]["client_summary"] = edited_summary
 
             # Manual trigger for Do Not Submit
             if r["recommendation"] == "Do Not Submit":

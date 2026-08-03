@@ -243,28 +243,57 @@ if "results" in st.session_state:
 
             if r["validation_questions"]:
                 st.markdown("**Recruiter Validation Questions**")
+                vq_edit_key = f"vq_edit_{idx}"
                 questions_text = "\n".join([f"{i}. {q}" for i, q in enumerate(r["validation_questions"], 1)])
-                edited_questions = st.text_area(
-                    "Edit validation questions",
-                    value=questions_text,
-                    key=f"vq_{idx}",
-                    label_visibility="collapsed"
-                )
-                if edited_questions != questions_text:
-                    st.session_state["results"][idx]["validation_questions"] = [
-                        q.split(". ", 1)[-1] for q in edited_questions.strip().split("\n") if q.strip()
-                    ]
+
+                if st.session_state.get(vq_edit_key, False):
+                    edited_questions = st.text_area(
+                        "Edit validation questions",
+                        value=questions_text,
+                        key=f"vq_input_{idx}",
+                        label_visibility="collapsed"
+                    )
+                    col_save, col_cancel, _ = st.columns([1, 1, 6])
+                    if col_save.button("Save", key=f"vq_save_{idx}"):
+                        st.session_state["results"][idx]["validation_questions"] = [
+                            q.split(". ", 1)[-1] for q in edited_questions.strip().split("\n") if q.strip()
+                        ]
+                        st.session_state[vq_edit_key] = False
+                        st.rerun()
+                    if col_cancel.button("Cancel", key=f"vq_cancel_{idx}"):
+                        st.session_state[vq_edit_key] = False
+                        st.rerun()
+                else:
+                    for i, q in enumerate(r["validation_questions"], 1):
+                        st.markdown(f"{i}. {q}")
+                    if st.button("Edit", key=f"vq_edit_btn_{idx}"):
+                        st.session_state[vq_edit_key] = True
+                        st.rerun()
 
             if r["client_summary"]:
                 st.markdown("**Client-Ready Summary**")
-                edited_summary = st.text_area(
-                    "Edit client summary",
-                    value=r["client_summary"],
-                    key=f"cs_{idx}",
-                    label_visibility="collapsed"
-                )
-                if edited_summary != r["client_summary"]:
-                    st.session_state["results"][idx]["client_summary"] = edited_summary
+                cs_edit_key = f"cs_edit_{idx}"
+
+                if st.session_state.get(cs_edit_key, False):
+                    edited_summary = st.text_area(
+                        "Edit client summary",
+                        value=r["client_summary"],
+                        key=f"cs_input_{idx}",
+                        label_visibility="collapsed"
+                    )
+                    col_save, col_cancel, _ = st.columns([1, 1, 6])
+                    if col_save.button("Save", key=f"cs_save_{idx}"):
+                        st.session_state["results"][idx]["client_summary"] = edited_summary
+                        st.session_state[cs_edit_key] = False
+                        st.rerun()
+                    if col_cancel.button("Cancel", key=f"cs_cancel_{idx}"):
+                        st.session_state[cs_edit_key] = False
+                        st.rerun()
+                else:
+                    st.info(r["client_summary"])
+                    if st.button("Edit", key=f"cs_edit_btn_{idx}"):
+                        st.session_state[cs_edit_key] = True
+                        st.rerun()
 
             # Manual trigger for Do Not Submit
             if r["recommendation"] == "Do Not Submit":

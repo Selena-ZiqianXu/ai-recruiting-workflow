@@ -2,7 +2,7 @@
 
 An AI-executed recruiting workflow that processes job descriptions and candidate resumes through a multi-step LLM prompt chain, producing structured, recruiter-ready output for human validation and submission.
 
-**[Live Demo →](https://your-app-url.streamlit.app)**
+**[Live Demo →](https://ai-recruiting-workflow-y7krow7ybylznak6shcmxu.streamlit.app/)**
 
 ---
 
@@ -34,7 +34,7 @@ For each candidate, the workflow generates:
 
 ## How to Use
 
-1. Open the [Live Demo](https://your-app-url.streamlit.app)
+1. Open the [Live Demo](https://ai-recruiting-workflow-y7krow7ybylznak6shcmxu.streamlit.app/)
 2. Enter your [Anthropic API Key](https://console.anthropic.com/) in the sidebar
 3. Upload the JD PDF
 4. Upload one or more resume PDFs

@@ -224,7 +224,7 @@ if "results" in st.session_state:
     st.divider()
     st.subheader("Detailed Candidate Reports")
 
-    for r in results:
+    for idx, r in enumerate(results):
         color = REC_COLORS.get(r["recommendation"], "gray")
         with st.expander(f"{r['name']} — :{color}[{r['recommendation']}]"):
             st.markdown(f"**Reason:** {r['brief_reason']}")
@@ -246,6 +246,67 @@ if "results" in st.session_state:
             if r["client_summary"]:
                 st.markdown("**Client-Ready Summary**")
                 st.info(r["client_summary"])
+
+            # Manual trigger for Do Not Submit
+            if r["recommendation"] == "Do Not Submit":
+                st.divider()
+                override_key = f"override_{idx}"
+                if st.button("Generate Validation Questions & Summary", key=f"btn_{idx}"):
+                    if not api_key:
+                        st.error("Please enter your API key in the sidebar.")
+                    else:
+                        override_client = get_client(api_key)
+                        with st.spinner("Generating..."):
+                            SYSTEM_PROMPT = '''You are a senior recruiting consultant at an AI-native recruiting firm.
+You evaluate candidates for technical AI product roles at early-stage startups.
+Be specific, evidence-based, and practical in your assessments.
+Do not ask clarifying questions. Provide complete output directly.
+Always output only valid JSON, no preamble, no markdown backticks.'''
+
+                            validation_prompt = f'''Based on this candidate evaluation, generate recruiter validation questions.
+
+CANDIDATE: {r["name"]}
+EVALUATION:
+{json.dumps({"recommendation": r["recommendation"], "brief_reason": r["brief_reason"], "main_risk": r["main_risk"], "strengths": r["strengths"], "risks": r["risks"]}, indent=2)}
+
+Generate 3-4 in-depth questions targeting specific risks a recruiter should ask this candidate.
+Questions should target unverified claims, gaps, or risks.
+Be specific - reference actual items from the resume.
+
+Return this exact JSON structure:
+{{
+  "questions": ["question 1", "question 2"]
+}}'''
+                            validation_data = ask_json(override_client, validation_prompt, system=SYSTEM_PROMPT)
+
+                            summary_prompt = f'''Write a client-ready candidate summary for submission to a hiring manager.
+
+CANDIDATE: {r["name"]}
+EVALUATION:
+{json.dumps({"recommendation": r["recommendation"], "brief_reason": r["brief_reason"], "main_risk": r["main_risk"], "strengths": r["strengths"], "risks": r["risks"]}, indent=2)}
+
+Write 2-3 sentences in professional business language suitable for a client hiring manager.
+Focus on what makes this candidate compelling for the role.
+Do not use technical jargon. Do not mention scores or internal evaluation details.
+
+Return this exact JSON structure:
+{{
+  "summary": "2-3 sentence summary here"
+}}'''
+                            summary_data = ask_json(override_client, summary_prompt, system=SYSTEM_PROMPT)
+
+                            st.session_state[override_key] = {
+                                "questions": validation_data["questions"],
+                                "summary": summary_data["summary"]
+                            }
+
+                if override_key in st.session_state:
+                    override = st.session_state[override_key]
+                    st.markdown("**Recruiter Validation Questions** *(manually generated)*")
+                    for i, q in enumerate(override["questions"], 1):
+                        st.markdown(f"{i}. {q}")
+                    st.markdown("**Client-Ready Summary** *(manually generated)*")
+                    st.info(override["summary"])
 
     # ── Export PDF ────────────────────────────────────────────────────────────
     st.divider()

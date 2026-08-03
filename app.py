@@ -133,7 +133,7 @@ CANDIDATE RESUME:
 Return this exact JSON structure:
 {{
   "candidate_name": "full name extracted from resume",
-  "recommendation": "Ready to Submit | Validate First | Do Not Submit",
+  "recommendation": "Move Forward | Validate First | Pass",
   "brief_reason": "one sentence explaining the recommendation",
   "main_risk": "one sentence describing the main risk",
   "strengths": ["strength with specific evidence from resume"],
@@ -144,10 +144,10 @@ Return this exact JSON structure:
         recommendation = evaluation["recommendation"]
 
         validation_questions = []
-        client_summary = ""
+        candidate_summary = ""
 
-        if recommendation != "Do Not Submit":
-            depth = "1-2 lightweight confirmation questions" if recommendation == "Ready to Submit" else "3-4 in-depth questions targeting specific risks"
+        if recommendation != "Pass":
+            depth = "1-2 lightweight confirmation questions" if recommendation == "Move Forward" else "3-4 in-depth questions targeting specific risks"
             validation_prompt = f'''Based on this candidate evaluation, generate recruiter validation questions.
 
 CANDIDATE: {name}
@@ -180,7 +180,7 @@ Return this exact JSON structure:
   "summary": "2-3 sentence summary here"
 }}'''
             summary_data = ask_json(client, summary_prompt, system=SYSTEM_PROMPT)
-            client_summary = summary_data["summary"]
+            candidate_summary = summary_data["summary"]
 
         results.append({
             "name": f"{evaluation.get('candidate_name', name)} ({name})",
@@ -190,14 +190,14 @@ Return this exact JSON structure:
             "strengths": evaluation["strengths"],
             "risks": evaluation["risks"],
             "validation_questions": validation_questions,
-            "client_summary": client_summary
+            "candidate_summary": candidate_summary
         })
 
         progress.progress((i + 1) / len(resumes))
 
     status.text("All candidates evaluated.")
 
-    order = {"Ready to Submit": 0, "Validate First": 1, "Do Not Submit": 2}
+    order = {"Move Forward": 0, "Validate First": 1, "Pass": 2}
     results.sort(key=lambda x: order.get(x["recommendation"], 1))
 
     # Store results in session state
@@ -211,9 +211,9 @@ if "results" in st.session_state:
     st.subheader("Recommendation Summary")
 
     REC_COLORS = {
-        "Ready to Submit": "green",
+        "Move Forward": "green",
         "Validate First": "orange",
-        "Do Not Submit": "red"
+        "Pass": "red"
     }
 
     # Summary table
@@ -246,7 +246,7 @@ if "results" in st.session_state:
                 st.markdown(f"- {s}")
 
             if r["validation_questions"]:
-                st.markdown("**Recruiter Validation Questions**")
+                st.markdown("**Validation Questions**")
                 vq_edit_key = f"vq_edit_{idx}"
                 questions_text = "\n".join([f"{i}. {q}" for i, q in enumerate(r["validation_questions"], 1)])
 
@@ -274,33 +274,33 @@ if "results" in st.session_state:
                         st.session_state[vq_edit_key] = True
                         st.rerun()
 
-            if r["client_summary"]:
-                st.markdown("**Client-Ready Summary**")
+            if r["candidate_summary"]:
+                st.markdown("**Candidate Summary**")
                 cs_edit_key = f"cs_edit_{idx}"
 
                 if st.session_state.get(cs_edit_key, False):
                     edited_summary = st.text_area(
-                        "Edit client summary",
-                        value=r["client_summary"],
+                        "Edit candidate summary",
+                        value=r["candidate_summary"],
                         key=f"cs_input_{idx}",
                         label_visibility="collapsed"
                     )
                     col_save, col_cancel, _ = st.columns([1, 1, 6])
                     if col_save.button("Save", key=f"cs_save_{idx}"):
-                        st.session_state["results"][idx]["client_summary"] = edited_summary
+                        st.session_state["results"][idx]["candidate_summary"] = edited_summary
                         st.session_state[cs_edit_key] = False
                         st.rerun()
                     if col_cancel.button("Cancel", key=f"cs_cancel_{idx}"):
                         st.session_state[cs_edit_key] = False
                         st.rerun()
                 else:
-                    st.info(r["client_summary"])
+                    st.info(r["candidate_summary"])
                     if st.button("Edit", key=f"cs_edit_btn_{idx}"):
                         st.session_state[cs_edit_key] = True
                         st.rerun()
 
-            # Manual trigger for Do Not Submit
-            if r["recommendation"] == "Do Not Submit":
+            # Manual trigger for Pass
+            if r["recommendation"] == "Pass":
                 st.divider()
                 override_key = f"override_{idx}"
                 if st.button("Generate Validation Questions & Summary", key=f"btn_{idx}"):
@@ -355,10 +355,10 @@ Return this exact JSON structure:
 
                 if override_key in st.session_state:
                     override = st.session_state[override_key]
-                    st.markdown("**Recruiter Validation Questions** *(manually generated)*")
+                    st.markdown("**Validation Questions** *(manually generated)*")
                     for i, q in enumerate(override["questions"], 1):
                         st.markdown(f"{i}. {q}")
-                    st.markdown("**Client-Ready Summary** *(manually generated)*")
+                    st.markdown("**Candidate Summary** *(manually generated)*")
                     st.info(override["summary"])
 
     # ── Export PDF ────────────────────────────────────────────────────────────
@@ -377,9 +377,9 @@ Return this exact JSON structure:
         s_body = ParagraphStyle("B", parent=styles["Normal"], fontSize=9, leading=14, spaceAfter=4)
 
         REC_COLORS_PDF = {
-            "Ready to Submit": colors.HexColor("#276749"),
+            "Move Forward": colors.HexColor("#276749"),
             "Validate First": colors.HexColor("#744210"),
-            "Do Not Submit": colors.HexColor("#742a2a")
+            "Pass": colors.HexColor("#742a2a")
         }
 
         story = []
@@ -445,13 +445,13 @@ Return this exact JSON structure:
                 story.append(Paragraph(f"• {safe(s)}", s_body))
             if r["validation_questions"]:
                 story.append(Spacer(1, 2*mm))
-                story.append(Paragraph("Recruiter Validation Questions", s_h2))
+                story.append(Paragraph("Validation Questions", s_h2))
                 for i, q in enumerate(r["validation_questions"], 1):
                     story.append(Paragraph(f"{i}. {safe(q)}", s_body))
-            if r["client_summary"]:
+            if r["candidate_summary"]:
                 story.append(Spacer(1, 2*mm))
-                story.append(Paragraph("Client-Ready Summary", s_h2))
-                story.append(Paragraph(safe(r["client_summary"]), s_body))
+                story.append(Paragraph("Candidate Summary", s_h2))
+                story.append(Paragraph(safe(r["candidate_summary"]), s_body))
             story.append(Spacer(1, 4*mm))
             story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#e0e0e0")))
             story.append(Spacer(1, 4*mm))
@@ -506,9 +506,9 @@ Return this exact JSON structure:
             hdr[i]._tc.get_or_add_tcPr()
 
         REC_COLORS_DOCX = {
-            "Ready to Submit": RGBColor(0x27, 0x67, 0x49),
+            "Move Forward": RGBColor(0x27, 0x67, 0x49),
             "Validate First": RGBColor(0x74, 0x42, 0x10),
-            "Do Not Submit": RGBColor(0x74, 0x2A, 0x2A)
+            "Pass": RGBColor(0x74, 0x2A, 0x2A)
         }
 
         for r in results:
@@ -559,15 +559,15 @@ Return this exact JSON structure:
 
             if r["validation_questions"]:
                 vq_h = doc.add_paragraph()
-                vq_h.add_run("Recruiter Validation Questions").bold = True
+                vq_h.add_run("Validation Questions").bold = True
                 for i, q in enumerate(r["validation_questions"], 1):
                     p = doc.add_paragraph(f"{i}. {q}")
                     p.runs[0].font.size = Pt(9)
 
-            if r["client_summary"]:
+            if r["candidate_summary"]:
                 cs_h = doc.add_paragraph()
-                cs_h.add_run("Client-Ready Summary").bold = True
-                p = doc.add_paragraph(r["client_summary"])
+                cs_h.add_run("Candidate Summary").bold = True
+                p = doc.add_paragraph(r["candidate_summary"])
                 p.runs[0].font.size = Pt(9)
 
         buffer = BytesIO()

@@ -12,6 +12,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
+from docx import Document
+from docx.shared import Pt, RGBColor, Mm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="AI Recruiting Workflow", layout="wide")
 st.title("AI Candidate Matching & Recommendation")
@@ -457,9 +461,132 @@ Return this exact JSON structure:
         return buffer
 
     pdf_buffer = generate_pdf(results)
-    st.download_button(
+
+    def generate_docx(results):
+        doc = Document()
+
+        # Page margins
+        for section in doc.sections:
+            section.top_margin = Mm(20)
+            section.bottom_margin = Mm(20)
+            section.left_margin = Mm(20)
+            section.right_margin = Mm(20)
+
+        # Title
+        title = doc.add_paragraph()
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = title.add_run("Candidate Matching & Recommendation Report")
+        run.bold = True
+        run.font.size = Pt(16)
+
+        sub = doc.add_paragraph()
+        sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        sub_run = sub.add_run(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} | Candidates: {len(results)}")
+        sub_run.font.size = Pt(9)
+        sub_run.font.color.rgb = RGBColor(0x88, 0x88, 0x88)
+
+        doc.add_paragraph()
+
+        # Recommendation summary heading
+        h1 = doc.add_paragraph()
+        h1_run = h1.add_run("Recommendation Summary")
+        h1_run.bold = True
+        h1_run.font.size = Pt(13)
+
+        # Summary table
+        table = doc.add_table(rows=1, cols=4)
+        table.style = "Table Grid"
+        hdr = table.rows[0].cells
+        for i, text in enumerate(["Candidate", "Recommendation", "Brief Reason", "Main Risk"]):
+            p = hdr[i].paragraphs[0]
+            run = p.add_run(text)
+            run.bold = True
+            run.font.size = Pt(9)
+            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+            hdr[i]._tc.get_or_add_tcPr()
+
+        REC_COLORS_DOCX = {
+            "Ready to Submit": RGBColor(0x27, 0x67, 0x49),
+            "Validate First": RGBColor(0x74, 0x42, 0x10),
+            "Do Not Submit": RGBColor(0x74, 0x2A, 0x2A)
+        }
+
+        for r in results:
+            row = table.add_row().cells
+            for i, text in enumerate([r["name"], r["recommendation"], r["brief_reason"], r["main_risk"]]):
+                p = row[i].paragraphs[0]
+                run = p.add_run(text)
+                run.font.size = Pt(8)
+                if i == 1:
+                    run.font.color.rgb = REC_COLORS_DOCX.get(r["recommendation"], RGBColor(0, 0, 0))
+                    run.bold = True
+
+        doc.add_paragraph()
+
+        # Detailed reports
+        h1 = doc.add_paragraph()
+        h1_run = h1.add_run("Detailed Candidate Reports")
+        h1_run.bold = True
+        h1_run.font.size = Pt(13)
+
+        for r in results:
+            doc.add_paragraph()
+            name_p = doc.add_paragraph()
+            name_run = name_p.add_run(r["name"])
+            name_run.bold = True
+            name_run.font.size = Pt(11)
+
+            rec_p = doc.add_paragraph()
+            rec_run = rec_p.add_run(r["recommendation"])
+            rec_run.bold = True
+            rec_run.font.size = Pt(10)
+            rec_run.font.color.rgb = REC_COLORS_DOCX.get(r["recommendation"], RGBColor(0, 0, 0))
+
+            doc.add_paragraph(f"Reason: {r['brief_reason']}").runs[0].font.size = Pt(9)
+            doc.add_paragraph(f"Main Risk: {r['main_risk']}").runs[0].font.size = Pt(9)
+
+            s_h = doc.add_paragraph()
+            s_h.add_run("Strengths").bold = True
+            for s in r["strengths"]:
+                p = doc.add_paragraph(f"• {s}", style="List Bullet")
+                p.runs[0].font.size = Pt(9)
+
+            r_h = doc.add_paragraph()
+            r_h.add_run("Risks").bold = True
+            for s in r["risks"]:
+                p = doc.add_paragraph(f"• {s}", style="List Bullet")
+                p.runs[0].font.size = Pt(9)
+
+            if r["validation_questions"]:
+                vq_h = doc.add_paragraph()
+                vq_h.add_run("Recruiter Validation Questions").bold = True
+                for i, q in enumerate(r["validation_questions"], 1):
+                    p = doc.add_paragraph(f"{i}. {q}")
+                    p.runs[0].font.size = Pt(9)
+
+            if r["client_summary"]:
+                cs_h = doc.add_paragraph()
+                cs_h.add_run("Client-Ready Summary").bold = True
+                p = doc.add_paragraph(r["client_summary"])
+                p.runs[0].font.size = Pt(9)
+
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        return buffer
+
+    docx_buffer = generate_docx(results)
+
+    col1, col2 = st.columns(2)
+    col1.download_button(
         label="Download PDF Report",
         data=pdf_buffer,
         file_name="candidate_report.pdf",
         mime="application/pdf"
+    )
+    col2.download_button(
+        label="Download Word Report",
+        data=docx_buffer,
+        file_name="candidate_report.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )

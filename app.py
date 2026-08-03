@@ -69,6 +69,9 @@ with col2:
 # ── Run button ────────────────────────────────────────────────────────────────
 run = st.button("Run Evaluation", type="primary", disabled=not (api_key and jd_file and resume_files))
 
+if api_key:
+    st.session_state["api_key"] = api_key
+
 if run:
     client = get_client(api_key)
 
@@ -252,10 +255,11 @@ if "results" in st.session_state:
                 st.divider()
                 override_key = f"override_{idx}"
                 if st.button("Generate Validation Questions & Summary", key=f"btn_{idx}"):
-                    if not api_key:
+                    saved_key = st.session_state.get("api_key", "")
+                    if not saved_key:
                         st.error("Please enter your API key in the sidebar.")
                     else:
-                        override_client = get_client(api_key)
+                        override_client = get_client(saved_key)
                         with st.spinner("Generating..."):
                             SYSTEM_PROMPT = '''You are a senior recruiting consultant at an AI-native recruiting firm.
 You evaluate candidates for technical AI product roles at early-stage startups.

@@ -27,7 +27,7 @@ with st.sidebar:
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 def get_client(key):
-    return anthropic.Anthropic(api_key=key)
+    return anthropic.Anthropic(api_key=key.strip())
 
 def ask(client, prompt, system=None):
     kwargs = dict(

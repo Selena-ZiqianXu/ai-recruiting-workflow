@@ -33,7 +33,6 @@ def ask(client, prompt, system=None):
     kwargs = dict(
         model="claude-sonnet-4-6",
         max_tokens=1000,
-        temperature=0,
         messages=[{"role": "user", "content": prompt}]
     )
     if system:

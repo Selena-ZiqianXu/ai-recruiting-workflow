@@ -1,5 +1,4 @@
 import streamlit as st
-api_key = st.secrets["ANTHROPIC_API_KEY"]
 import anthropic
 import json
 import os
@@ -21,10 +20,8 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 st.set_page_config(page_title="AI Recruiting Workflow", layout="wide")
 st.title("AI Candidate Matching & Recommendation")
 
-# ── Sidebar: API Key ──────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("Settings")
-    api_key = st.text_input("Anthropic API Key", type="password")
+# API Key ──────────────────────────────────────────────────────────
+api_key = st.secrets["ANTHROPIC_API_KEY"]
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 def get_client(key):
@@ -72,9 +69,6 @@ with col2:
 
 # ── Run button ────────────────────────────────────────────────────────────────
 run = st.button("Run Evaluation", type="primary", disabled=not (api_key and jd_file and resume_files))
-
-if api_key:
-    st.session_state["api_key"] = api_key
 
 if run:
     client = get_client(api_key)

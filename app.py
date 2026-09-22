@@ -1,5 +1,5 @@
 import streamlit as st
-
+api_key = st.secrets["ANTHROPIC_API_KEY"]
 import anthropic
 import json
 import os

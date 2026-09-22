@@ -35,11 +35,10 @@ For each candidate, the workflow generates:
 ## How to Use
 
 1. Open the [Live Demo](https://ai-recruiting-workflow-y7krow7ybylznak6shcmxu.streamlit.app/)
-2. Enter your [Anthropic API Key](https://console.anthropic.com/) in the sidebar
-3. Upload the JD PDF
-4. Upload one or more resume PDFs
-5. Click **Run Evaluation**
-6. Review results, edit outputs if needed, and export
+2. Upload the JD PDF
+3. Upload one or more resume PDFs
+4. Click **Run Evaluation**
+5. Review results, edit outputs if needed, and export
 
 ---
 
